@@ -522,7 +522,6 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
           backgroundColor: color.SurfaceVariant.Container,
           borderRadius: config.radii.R300,
           border: `1px solid ${color.SurfaceVariant.ContainerLine}`,
-          borderLeft: `3px solid ${color.Primary.Main}`,
           gap: config.space.S200,
         }}
       >
