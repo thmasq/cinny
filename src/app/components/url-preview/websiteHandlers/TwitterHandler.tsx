@@ -551,9 +551,21 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
           </Text>
         </Box>
 
-        {/* Quote tweet text */}
+        {/* Quote tweet text with proper line wrapping */}
         {quote.text && (
-          <Text size="T200" style={{ lineHeight: '1.4' }}>
+          <Text 
+            size="T200" 
+            style={{ 
+              lineHeight: '1.4',
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+              wordBreak: 'break-word',
+              hyphens: 'auto',
+              width: '100%',
+              minWidth: 0,
+            }}
+          >
             {quote.text}
           </Text>
         )}
@@ -689,7 +701,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
           </Box>
         </Box>
 
-        {/* Tweet Text - Section 2 */}
+        {/* Tweet Text - Section 2 with improved line wrapping */}
         {tweet.text && (
           <Box
             style={{
@@ -697,6 +709,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
               paddingRight: config.space.S400,
               marginBottom: config.space.S300,
               width: '100%',
+              minWidth: 0,
             }}
           >
             <Text
@@ -704,8 +717,13 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
               style={{
                 lineHeight: '1.4',
                 whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word',
+                hyphens: 'auto',
                 display: 'block',
                 width: '100%',
+                minWidth: 0,
               }}
             >
               {tweet.text}
