@@ -31,6 +31,11 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
+// Helper function to generate Twitter profile URL
+const getProfileUrl = (screenName: string): string => {
+  return `https://x.com/${screenName}`;
+};
+
 interface ImageOverlayProps {
   src: string;
   alt: string;
@@ -171,6 +176,11 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
 
   const handleCloseOverlay = useCallback(() => {
     setOverlayImage(null);
+  }, []);
+
+  const handleProfileClick = useCallback((screenName: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    window.open(getProfileUrl(screenName), '_blank', 'noopener,noreferrer');
   }, []);
 
   useEffect(() => {
@@ -539,15 +549,33 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
               }}
             />
           )}
-          <Text size="T200" style={{ fontWeight: 600, lineHeight: '1.2' }}>
-            {quote.author.name}
-          </Text>
-          <Text
-            size="T200"
-            style={{ color: color.Surface.OnContainer, opacity: 0.6 }}
-          >
-            @{quote.author.screen_name}
-          </Text>
+          <Box direction="Column">
+            <Text 
+              size="T200" 
+              style={{ 
+                fontWeight: 600, 
+                lineHeight: '1.2',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: color.Primary.Main,
+              }}
+              onClick={(e) => handleProfileClick(quote.author.screen_name, e)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.textDecoration = 'underline';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.textDecoration = 'none';
+              }}
+            >
+              {quote.author.name}
+            </Text>
+            <Text
+              size="T200"
+              style={{ color: color.Surface.OnContainer, opacity: 0.6 }}
+            >
+              @{quote.author.screen_name}
+            </Text>
+          </Box>
         </Box>
 
         {/* Quote tweet text with proper line wrapping */}
@@ -691,7 +719,23 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
             />
           )}
           <Box direction="Column">
-            <Text size="T300" style={{ fontWeight: 'bold', lineHeight: '1.2' }}>
+            <Text 
+              size="T300" 
+              style={{ 
+                fontWeight: 'bold', 
+                lineHeight: '1.2',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: color.Primary.Main,
+              }}
+              onClick={(e) => handleProfileClick(tweet.author?.screen_name || 'unknown', e)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.textDecoration = 'underline';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.textDecoration = 'none';
+              }}
+            >
               {tweet.author?.name || 'Unknown User'}
             </Text>
             <Text size="T200" style={{ color: color.Surface.OnContainer, opacity: 0.7 }}>
@@ -708,7 +752,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
               paddingRight: config.space.S400,
               marginBottom: config.space.S300,
               width: '100%',
-              minWidth: 0,
+              minWidth: 0, // Allow shrinking
             }}
           >
             <Text
@@ -722,7 +766,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
                 hyphens: 'auto',
                 display: 'block',
                 width: '100%',
-                minWidth: 0,
+                minWidth: 0, // Allow shrinking
               }}
             >
               {tweet.text}
@@ -788,7 +832,7 @@ export const twitterHandler: WebsiteHandler = {
       return TWITTER_PATTERNS.some((pattern) => pattern.test(url));
     } catch (error) {
       console.warn('Error testing Twitter URL pattern:', error);
-      return null;
+      return false;
     }
   },
   handle: (url: string): WebsiteHandlerResult | null => {
