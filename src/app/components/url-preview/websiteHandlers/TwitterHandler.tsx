@@ -543,7 +543,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
             {quote.author.name}
           </Text>
           <Text
-            size="T100"
+            size="T200"
             style={{ color: color.Surface.OnContainer, opacity: 0.6 }}
           >
             @{quote.author.screen_name}
