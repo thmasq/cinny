@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Box, Text, config, color } from 'folds';
+import { Box, Button, Text, config, color } from 'folds';
 import { WebsiteHandler, WebsiteHandlerResult } from './types';
 import * as css from '../UrlPreview.css';
 import { fetchProxied } from './utils';
@@ -116,6 +116,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
   const [tweetData, setTweetData] = useState<any>(null);
   const [processedTweetData, setProcessedTweetData] = useState<any>(null);
   const [overlayImage, setOverlayImage] = useState<{ src: string; alt: string } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Clean up object URLs on unmount
   useEffect(() => {
@@ -159,7 +160,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
       controller.abort();
       setError('Request timeout');
       setLoading(false);
-    }, 5000);
+    }, 10000);
 
     const fetchAndProcessTweet = async () => {
       const tweetInfo = extractTweetInfo(url);
@@ -192,28 +193,28 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
 
         const processedData = { ...tweet };
 
-        if (tweet.author?.avatar_url) {
-          try {
+        try {
+          if (tweet.author?.avatar_url) {
             const res = await fetchProxied(tweet.author.avatar_url, { signal: controller.signal });
             const blob = await res.blob();
             processedData.author.avatar_url = URL.createObjectURL(blob);
-          } catch (e) {
-            console.warn('Failed to proxy fetch author avatar:', e);
-            throw new Error('Failed to load media');
           }
+        } catch (e) {
+          console.warn('Failed to proxy fetch author avatar:', e);
+          processedData.author.avatar_url = tweet.author?.avatar_url;
         }
 
-        if (tweet.quote?.author?.avatar_url) {
-          try {
+        try {
+          if (tweet.quote?.author?.avatar_url) {
             const res = await fetchProxied(tweet.quote.author.avatar_url, {
               signal: controller.signal,
             });
             const blob = await res.blob();
             processedData.quote.author.avatar_url = URL.createObjectURL(blob);
-          } catch (e) {
-            console.warn('Failed to proxy fetch quote avatar:', e);
-            throw new Error('Failed to load media');
           }
+        } catch (e) {
+          console.warn('Failed to proxy fetch quote avatar:', e);
+          processedData.quote.author.avatar_url = tweet.quote?.author?.avatar_url;
         }
 
         if (tweet.media?.photos) {
@@ -226,7 +227,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
               processedData.media.photos[i].url = URL.createObjectURL(blob);
             } catch (e) {
               console.warn('Failed to proxy fetch photo:', tweet.media.photos[i].url, e);
-              throw new Error('Failed to load media');
+              processedData.media.photos[i].url = tweet.media.photos[i].url;
             }
           }
         }
@@ -248,7 +249,8 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
               processedData.media.videos[i].url = URL.createObjectURL(videoBlob);
             } catch (e) {
               console.warn('Failed to proxy fetch video:', video.url, e);
-              throw new Error('Failed to load media');
+              processedData.media.videos[i].url = video.url;
+              processedData.media.videos[i].thumbnail_url = video.thumbnail_url;
             }
           }
         }
@@ -256,13 +258,25 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
         setProcessedTweetData(processedData);
         setLoading(false);
         clearTimeout(timeoutId);
+
+        if (containerRef.current) {
+          const event = new CustomEvent('embedLoaded', { detail: { success: true } });
+          containerRef.current.dispatchEvent(event);
+        }
       } catch (err) {
         if (err.name === 'AbortError') {
           console.error('TwitterEmbed: Request timeout:', err);
+          setError('Request timed out');
         } else {
           console.error('TwitterEmbed: Error processing tweet:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load tweet');
         }
-        return null;
+        setLoading(false);
+
+        if (containerRef.current) {
+          const event = new CustomEvent('embedLoaded', { detail: { success: false, error: err } });
+          containerRef.current.dispatchEvent(event);
+        }
       }
     };
 
@@ -274,8 +288,71 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
     };
   }, [url]);
 
-  if (loading || error || !processedTweetData) {
-    return null;
+  if (loading) {
+    return (
+      <Box
+        ref={containerRef}
+        className={css.UrlPreview}
+        direction="Column"
+        alignItems="Center"
+        justifyContent="Center"
+        style={{
+          borderRadius: config.radii.R300,
+          backgroundColor: color.Surface.Container,
+          maxWidth: '500px',
+          minHeight: '150px',
+          padding: config.space.S400,
+        }}
+        data-embed-container
+        data-twitter-embed
+      >
+        <Box direction="Column" alignItems="Center" gap="300">
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              border: '2px solid transparent',
+              borderTop: `2px solid ${color.Primary.Main}`,
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
+          <Text size="T300" align="Center" style={{ opacity: 0.7 }}>
+            Loading tweet...
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error || !processedTweetData) {
+    return (
+      <Box
+        ref={containerRef}
+        className={css.UrlPreview}
+        direction="Column"
+        alignItems="Center"
+        justifyContent="Center"
+        style={{
+          borderRadius: config.radii.R300,
+          backgroundColor: color.Surface.Container,
+          maxWidth: '500px',
+          minHeight: '120px',
+          padding: config.space.S400,
+        }}
+        data-embed-container
+        data-twitter-embed
+      >
+        <Text size="T300" align="Center" style={{ color: color.Critical.Main }}>
+          Failed to load tweet
+        </Text>
+        {error && (
+          <Text size="T200" align="Center" style={{ opacity: 0.7, marginTop: config.space.S200 }}>
+            {error}
+          </Text>
+        )}
+      </Box>
+    );
   }
 
   const tweet = processedTweetData;
@@ -329,6 +406,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
   return (
     <>
       <Box
+        ref={containerRef}
         className={css.UrlPreview}
         direction="Column"
         style={{
@@ -338,7 +416,10 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          transition: 'all 0.3s ease',
         }}
+        data-embed-container
+        data-twitter-embed
       >
         {/* Author Header - Section 1 */}
         <Box
@@ -523,6 +604,14 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
       {overlayImage && (
         <ImageOverlay src={overlayImage.src} alt={overlayImage.alt} onClose={handleCloseOverlay} />
       )}
+
+      {/* Add spinning animation styles */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
   );
 };

@@ -22,6 +22,7 @@ import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { useSetting } from '../../state/hooks/settings';
 import { settingsAtom } from '../../state/settings';
 import { websiteHandlerRegistry } from './websiteHandlers/registry';
+import { useEmbedResizeHandler } from '../../hooks/useEmbedResizeHandler';
 import * as css from './UrlPreviewCard.css';
 
 const MAX_THUMBNAIL_SIZE = 600;
@@ -45,6 +46,22 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
       handlerError: null,
     });
 
+    // Loading state for embeds
+    const [isEmbedLoading, setIsEmbedLoading] = useState(false);
+    const [embedLoadError, setEmbedLoadError] = useState<string | null>(null);
+
+    // Embed resize handler
+    const embedResizeHandler = useEmbedResizeHandler({
+      onEmbedResize: useCallback((element, size) => {
+        // Optional: Log resize events for debugging
+        // console.log('Embed resized:', element, size);
+      }, []),
+      onLoadingStateChange: useCallback((loading) => {
+        setIsEmbedLoading(loading);
+      }, []),
+      debounceMs: 150, // Slightly higher debounce for smoother experience
+    });
+
     // Memoize website handler to prevent unnecessary re-computation
     const websiteHandler = useMemo(() => {
       if (!websiteHandlersEnabled) return null;
@@ -55,9 +72,12 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
     const handlerResult = useMemo(() => {
       if (!websiteHandler) return null;
       try {
+        setEmbedLoadError(null);
         return websiteHandler.handle(url);
       } catch (error) {
         console.warn('Website handler failed for URL:', url, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        setEmbedLoadError(errorMessage);
         setPreviewState((prev) => ({ ...prev, handlerError: error as Error }));
         return null;
       }
@@ -106,6 +126,8 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
         handlerResult: null,
         handlerError: null,
       });
+      setEmbedLoadError(null);
+      setIsEmbedLoading(false);
 
       // Determine if we need to load regular preview
       const needsRegularPreview = !handlerResult?.shouldReplace;
@@ -201,6 +223,49 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
       [thumbnailUrl, fullImageUrl, title, aspectRatio, siteName, description, url]
     );
 
+    // Enhanced loading state component
+    const LoadingPlaceholder = useCallback(
+      ({ minHeight = 102 }: { minHeight?: number }) => (
+        <Box 
+          alignItems="Center" 
+          justifyContent="Center" 
+          style={{ 
+            minHeight: `${minHeight}px`,
+            opacity: 0.7,
+            transition: 'opacity 0.3s ease'
+          }}
+        >
+          <Spinner variant="Secondary" size="600" />
+        </Box>
+      ),
+      []
+    );
+
+    // Error state component
+    const ErrorPlaceholder = useCallback(
+      ({ message }: { message: string }) => (
+        <Box 
+          alignItems="Center" 
+          justifyContent="Center" 
+          style={{ 
+            minHeight: '80px',
+            padding: config.space.S300,
+            color: 'var(--color-surface-oncontainer)',
+            opacity: 0.6
+          }}
+        >
+          <Box direction="Column" alignItems="Center" gap="200">
+            <Icon src={Icons.Warning} size="300" />
+            <Box style={{ fontSize: '0.75rem', textAlign: 'center' }}>
+              {message}
+            </Box>
+          </Box>
+        </Box>
+      ),
+      []
+    );
+
+    // Handle errors
     if (previewState.regular.status === AsyncStatus.Error && !handlerResult) {
       return null;
     }
@@ -209,40 +274,86 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
       console.warn('Website handler component failed, falling back to regular preview');
     }
 
-    if (handlerResult && handlerResult.shouldReplace && !previewState.handlerError) {
-      const { component: HandlerComponent } = handlerResult;
-
+    if (embedLoadError && handlerResult?.shouldReplace) {
       return (
-        <UrlPreview {...props} ref={ref}>
-          <HandlerComponent url={url} ts={ts} />
+        <UrlPreview {...props} ref={ref} data-url-preview data-embed-container>
+          <ErrorPlaceholder message={`Failed to load ${handlerResult.metadata?.siteName || 'embed'}`} />
         </UrlPreview>
       );
     }
 
+    // Handler that completely replaces the preview
+    if (handlerResult && handlerResult.shouldReplace && !previewState.handlerError) {
+      const { component: HandlerComponent } = handlerResult;
+
+      return (
+        <UrlPreview 
+          {...props} 
+          ref={ref} 
+          data-url-preview 
+          data-embed-container 
+          style={{ 
+            transition: 'min-height 0.3s ease',
+            minHeight: isEmbedLoading ? '120px' : undefined
+          }}
+        >
+          <div ref={embedResizeHandler.embedRef}>
+            <HandlerComponent url={url} ts={ts} />
+            {isEmbedLoading && (
+              <Box 
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1
+                }}
+              >
+                <Spinner variant="Secondary" size="400" />
+              </Box>
+            )}
+          </div>
+        </UrlPreview>
+      );
+    }
+
+    // Handler that supplements the regular preview
     if (handlerResult && !handlerResult.shouldReplace && !previewState.handlerError) {
       const { component: HandlerComponent } = handlerResult;
 
       return (
-        <UrlPreview {...props} ref={ref}>
-          <HandlerComponent url={url} ts={ts} />
+        <UrlPreview {...props} ref={ref} data-url-preview data-embed-container>
+          <div ref={embedResizeHandler.embedRef}>
+            <HandlerComponent url={url} ts={ts} />
+          </div>
           {previewState.regular.status === AsyncStatus.Success && renderRegularContent()}
           {previewState.regular.status === AsyncStatus.Loading && (
-            <Box alignItems="Center" justifyContent="Center" style={{ minHeight: '102px' }}>
-              <Spinner variant="Secondary" size="600" />
-            </Box>
+            <LoadingPlaceholder minHeight={102} />
           )}
         </UrlPreview>
       );
     }
 
+    // Regular preview only
     return (
-      <UrlPreview {...props} ref={ref}>
+      <UrlPreview 
+        {...props} 
+        ref={ref} 
+        data-url-preview
+        style={{
+          minHeight: previewState.regular.status === AsyncStatus.Loading ? '102px' : undefined,
+          transition: 'min-height 0.3s ease'
+        }}
+      >
         {previewState.regular.status === AsyncStatus.Success ? (
           renderRegularContent()
         ) : (
-          <Box alignItems="Center" justifyContent="Center" style={{ minHeight: '102px' }}>
-            <Spinner variant="Secondary" size="600" />
-          </Box>
+          <LoadingPlaceholder minHeight={102} />
         )}
       </UrlPreview>
     );

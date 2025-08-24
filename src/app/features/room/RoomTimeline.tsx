@@ -705,6 +705,130 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     useCallback(() => roomInputRef.current, [roomInputRef])
   );
 
+  // Handle embed resize globally using MutationObserver for dynamic content
+  useEffect(() => {
+    const scrollElement = getScrollElement();
+    if (!scrollElement) return;
+
+    let resizeObserver: ResizeObserver | null = null;
+    const observedEmbeds = new Set<Element>();
+
+    const observeEmbed = (element: Element) => {
+      if (!observedEmbeds.has(element) && element instanceof HTMLElement) {
+        observedEmbeds.add(element);
+        resizeObserver?.observe(element);
+      }
+    };
+
+    const unobserveEmbed = (element: Element) => {
+      if (observedEmbeds.has(element)) {
+        observedEmbeds.delete(element);
+        resizeObserver?.unobserve(element);
+      }
+    };
+
+    // Create resize observer for embeds
+    resizeObserver = new ResizeObserver((entries) => {
+      let shouldScrollToBottom = false;
+      
+      entries.forEach((entry) => {
+        const element = entry.target as HTMLElement;
+        const contentRect = entry.contentRect;
+        
+        // Get previous size
+        const prevSizeStr = element.dataset.embedPrevSize;
+        const prevSize = prevSizeStr ? JSON.parse(prevSizeStr) : null;
+        const currentSize = { width: contentRect.width, height: contentRect.height };
+        
+        if (prevSize) {
+          const heightDiff = Math.abs(currentSize.height - prevSize.height);
+          
+          // Only react to significant height changes (>5px)
+          if (heightDiff > 5) {
+            if (atBottomRef.current) {
+              shouldScrollToBottom = true;
+            }
+          }
+        }
+        
+        // Store current size
+        element.dataset.embedPrevSize = JSON.stringify(currentSize);
+      });
+
+      if (shouldScrollToBottom && scrollElement) {
+        // Use requestAnimationFrame to ensure smooth scrolling
+        requestAnimationFrame(() => {
+          scrollToBottom(scrollElement, 'smooth');
+        });
+      }
+    });
+
+    // Find and observe existing embeds
+    const findEmbeds = () => {
+      const embedSelectors = [
+        '[data-url-preview]',
+        '[data-embed-container]', 
+        'iframe',
+        'video',
+        '.youtube-embed',
+        '.twitter-embed'
+      ];
+      
+      embedSelectors.forEach(selector => {
+        const elements = scrollElement.querySelectorAll(selector);
+        elements.forEach(observeEmbed);
+      });
+    };
+
+    // Initial scan
+    findEmbeds();
+
+    // Set up mutation observer to catch new embeds
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        // Handle added nodes
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+            
+            // Check if the added element is an embed
+            if (element.matches?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed')) {
+              observeEmbed(element);
+            }
+            
+            // Check for embed children
+            element.querySelectorAll?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed').forEach(observeEmbed);
+          }
+        });
+        
+        // Handle removed nodes
+        mutation.removedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+            
+            if (element.matches?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed')) {
+              unobserveEmbed(element);
+            }
+            
+            element.querySelectorAll?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed').forEach(unobserveEmbed);
+          }
+        });
+      });
+    });
+
+    mutationObserver.observe(scrollElement, {
+      childList: true,
+      subtree: true,
+    });
+
+    // Cleanup
+    return () => {
+      resizeObserver?.disconnect();
+      mutationObserver.disconnect();
+      observedEmbeds.clear();
+    };
+  }, [getScrollElement]);
+
   const tryAutoMarkAsRead = useCallback(() => {
     const readUptoEventId = readUptoEventIdRef.current;
     if (!readUptoEventId) {

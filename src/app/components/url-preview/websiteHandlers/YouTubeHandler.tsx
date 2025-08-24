@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Button, Icon, Icons, Text, config, color } from 'folds';
 import { WebsiteHandler, WebsiteHandlerResult } from './types';
 import * as css from '../UrlPreview.css';
@@ -29,6 +29,9 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ url }) => {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [dimensions, setDimensions] = useState({ width: 560, height: 315 });
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const videoId = extractVideoId(url);
 
@@ -41,7 +44,18 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ url }) => {
   const handleLoad = useCallback(() => {
     setIsLoading(false);
     setHasError(false);
-  }, []);
+    
+    // Notify parent about size change after load
+    if (containerRef.current) {
+      const event = new CustomEvent('embedResize', {
+        detail: {
+          width: dimensions.width,
+          height: dimensions.height,
+        },
+      });
+      containerRef.current.dispatchEvent(event);
+    }
+  }, [dimensions]);
 
   const handleRetry = useCallback(() => {
     if (retryCount < 3) {
@@ -50,6 +64,34 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ url }) => {
       setRetryCount((prev) => prev + 1);
     }
   }, [retryCount]);
+
+  // Calculate responsive dimensions
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth || 560;
+        const maxWidth = Math.min(containerWidth, 560); // Max 560px width
+        const aspectRatio = 16 / 9; // YouTube aspect ratio
+        const height = Math.round(maxWidth / aspectRatio);
+        
+        setDimensions({
+          width: maxWidth,
+          height: Math.max(height, 315), // Min 315px height
+        });
+      }
+    };
+
+    updateDimensions();
+    
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     setHasError(false);
@@ -111,6 +153,7 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ url }) => {
 
   return (
     <Box
+      ref={containerRef}
       className={css.UrlPreview}
       style={{
         borderRadius: config.radii.R300,
@@ -118,7 +161,12 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ url }) => {
         width: 'fit-content',
         maxWidth: '100%',
         position: 'relative',
+        minHeight: isLoading ? '315px' : undefined,
+        backgroundColor: isLoading ? color.Surface.Container : 'transparent',
+        transition: 'all 0.3s ease',
       }}
+      data-embed-container
+      data-youtube-embed
     >
       {isLoading && (
         <Box
@@ -133,18 +181,25 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ url }) => {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1,
+            borderRadius: config.radii.R300,
           }}
         >
-          <Icon src={Icons.Play} size="600" />
+          <Box direction="Column" alignItems="Center" gap="300">
+            <Icon src={Icons.Play} size="600" />
+            <Text size="T300" align="Center" style={{ opacity: 0.7 }}>
+              Loading YouTube video...
+            </Text>
+          </Box>
         </Box>
       )}
 
       <iframe
+        ref={iframeRef}
         key={`${videoId}-${retryCount}`}
         src={embedUrl}
         title="YouTube video player"
-        width="640"
-        height="360"
+        width={dimensions.width}
+        height={dimensions.height}
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
@@ -152,6 +207,8 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ url }) => {
           maxWidth: '100%',
           border: 'none',
           display: 'block',
+          opacity: isLoading ? 0 : 1,
+          transition: 'opacity 0.3s ease',
         }}
         onError={handleError}
         onLoad={handleLoad}
@@ -179,6 +236,11 @@ export const youtubeHandler: WebsiteHandler = {
         type: 'embed',
         component: YouTubeEmbed,
         shouldReplace: true,
+        metadata: {
+          title: 'YouTube Video',
+          siteName: 'YouTube',
+          handlerName: 'YouTube',
+        },
       };
     } catch (error) {
       console.warn('Error handling YouTube URL:', url, error);
