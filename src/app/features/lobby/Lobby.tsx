@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { JoinRule, RestrictedAllowType, Room } from 'matrix-js-sdk';
 import { RoomJoinRulesEventContent } from 'matrix-js-sdk/lib/types';
 import { IHierarchyRoom } from 'matrix-js-sdk/lib/@types/spaces';
-import produce from 'immer';
+import { produce } from 'immer';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useSpace } from '../../hooks/useSpace';
