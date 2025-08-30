@@ -73,7 +73,8 @@ export function AuthLayout() {
   const clientConfig = useClientConfig();
 
   const defaultServer = clientDefaultServer(clientConfig);
-  let server: string = urlEncodedServer ? tryDecodeURIComponent(urlEncodedServer) : defaultServer;
+  let server: string = urlEncodedServer ?
+    tryDecodeURIComponent(urlEncodedServer) : defaultServer;
 
   if (!clientAllowedServer(clientConfig, server)) {
     server = defaultServer;
@@ -98,7 +99,7 @@ export function AuthLayout() {
     if (!urlEncodedServer || tryDecodeURIComponent(urlEncodedServer) !== server) {
       navigate(
         generatePath(currentAuthPath(location.pathname), {
-          server: encodeURIComponent(server),
+          server,
         }),
         { replace: true }
       );
@@ -113,7 +114,7 @@ export function AuthLayout() {
         return;
       }
       navigate(
-        generatePath(currentAuthPath(location.pathname), { server: encodeURIComponent(newServer) })
+        generatePath(currentAuthPath(location.pathname), { server: newServer })
       );
     },
     [navigate, location, discoveryState, server, discoverServer]
@@ -156,49 +157,25 @@ export function AuthLayout() {
             {discoveryState.status === AsyncStatus.Error && (
               <AuthLayoutError message="Failed to find homeserver." />
             )}
-            {autoDiscoveryError?.action === AutoDiscoveryAction.FAIL_PROMPT && (
-              <AuthLayoutError
-                message={`Failed to connect. Homeserver configuration found with ${autoDiscoveryError.host} appears unusable.`}
-              />
-            )}
-            {autoDiscoveryError?.action === AutoDiscoveryAction.FAIL_ERROR && (
-              <AuthLayoutError message="Failed to connect. Homeserver configuration base_url appears invalid." />
-            )}
-            {discoveryState.status === AsyncStatus.Success && autoDiscoveryInfo && (
-              <AuthServerProvider value={discoveryState.data.serverName}>
-                <AutoDiscoveryInfoProvider value={autoDiscoveryInfo}>
-                  <SpecVersionsLoader
-                    baseUrl={autoDiscoveryInfo['m.homeserver'].base_url}
-                    fallback={() => (
-                      <AuthLayoutLoading
-                        message={`Connecting to ${autoDiscoveryInfo['m.homeserver'].base_url}`}
-                      />
-                    )}
-                    error={() => (
-                      <AuthLayoutError message="Failed to connect. Either homeserver is unavailable at this moment or does not exist." />
-                    )}
-                  >
-                    {(specVersions) => (
-                      <SpecVersionsProvider value={specVersions}>
-                        <AuthFlowsLoader
-                          fallback={() => (
-                            <AuthLayoutLoading message="Loading authentication flow..." />
-                          )}
-                          error={() => (
-                            <AuthLayoutError message="Failed to get authentication flow information." />
-                          )}
-                        >
-                          {(authFlows) => (
-                            <AuthFlowsProvider value={authFlows}>
+            {discoveryState.status === AsyncStatus.Success && (
+              <>
+                {autoDiscoveryError && <AuthLayoutError message={autoDiscoveryError.message} />}
+                {autoDiscoveryInfo && (
+                  <SpecVersionsProvider baseUrl={autoDiscoveryInfo.homeserver.base_url}>
+                    <SpecVersionsLoader>
+                      <AutoDiscoveryInfoProvider value={autoDiscoveryInfo}>
+                        <AuthFlowsProvider>
+                          <AuthFlowsLoader>
+                            <AuthServerProvider value={server}>
                               <Outlet />
-                            </AuthFlowsProvider>
-                          )}
-                        </AuthFlowsLoader>
-                      </SpecVersionsProvider>
-                    )}
-                  </SpecVersionsLoader>
-                </AutoDiscoveryInfoProvider>
-              </AuthServerProvider>
+                            </AuthServerProvider>
+                          </AuthFlowsLoader>
+                        </AuthFlowsProvider>
+                      </AutoDiscoveryInfoProvider>
+                    </SpecVersionsLoader>
+                  </SpecVersionsProvider>
+                )}
+              </>
             )}
           </Box>
         </Box>
