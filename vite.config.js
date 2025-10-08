@@ -48,11 +48,9 @@ function serverMatrixSdkCryptoWasm(wasmFilePath) {
       server.middlewares.use((req, res, next) => {
         if (req.url === wasmFilePath) {
           const resolvedPath = path.join(path.resolve(), "/node_modules/@matrix-org/matrix-sdk-crypto-wasm/pkg/matrix_sdk_crypto_wasm_bg.wasm");
-
           if (fs.existsSync(resolvedPath)) {
             res.setHeader('Content-Type', 'application/wasm');
             res.setHeader('Cache-Control', 'no-cache');
-
             const fileStream = fs.createReadStream(resolvedPath);
             fileStream.pipe(res);
           } else {
@@ -82,6 +80,21 @@ export default defineConfig({
     fs: {
       // Allow serving files from one level up to the project root
       allow: ['..'],
+    },
+    proxy: {
+      // Proxy all /_matrix requests to your Matrix homeserver
+      '/_matrix': {
+        target: 'https://matrix.goyangi.club',
+        changeOrigin: true,
+        secure: true,
+        ws: true, // Enable WebSocket proxying for sync
+      },
+      // Also proxy the well-known endpoint
+      '/.well-known/matrix': {
+        target: 'https://matrix.goyangi.club',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
   plugins: [

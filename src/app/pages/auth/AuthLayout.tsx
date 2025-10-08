@@ -161,19 +161,23 @@ export function AuthLayout() {
               <>
                 {autoDiscoveryError && <AuthLayoutError message={autoDiscoveryError.message} />}
                 {autoDiscoveryInfo && (
-                  <SpecVersionsProvider baseUrl={autoDiscoveryInfo["m.homeserver"]?.base_url}>
-                    <SpecVersionsLoader>
-                      <AutoDiscoveryInfoProvider value={autoDiscoveryInfo}>
-                        <AuthFlowsProvider>
+                  <SpecVersionsLoader baseUrl={autoDiscoveryInfo["m.homeserver"]?.base_url}>
+                    {(versions) => (
+                      <SpecVersionsProvider value={versions}>
+                        <AutoDiscoveryInfoProvider value={autoDiscoveryInfo}>
                           <AuthFlowsLoader>
-                            <AuthServerProvider value={server}>
-                              <Outlet />
-                            </AuthServerProvider>
+                            {(authFlows) => (
+                              <AuthFlowsProvider value={authFlows}>
+                                <AuthServerProvider value={server}>
+                                  <Outlet />
+                                </AuthServerProvider>
+                              </AuthFlowsProvider>
+                            )}
                           </AuthFlowsLoader>
-                        </AuthFlowsProvider>
-                      </AutoDiscoveryInfoProvider>
-                    </SpecVersionsLoader>
-                  </SpecVersionsProvider>
+                        </AutoDiscoveryInfoProvider>
+                      </SpecVersionsProvider>
+                    )}
+                  </SpecVersionsLoader>
                 )}
               </>
             )}
