@@ -99,7 +99,10 @@ export const parseGeoUri = (location: string) => {
 const START_SLASHES_REG = /^\/+/g;
 const END_SLASHES_REG = /\/+$/g;
 export const trimLeadingSlash = (str: string): string => str.replace(START_SLASHES_REG, '');
-export const trimTrailingSlash = (str: string): string => str.replace(END_SLASHES_REG, '');
+export const trimTrailingSlash = (str: string): string => {
+  if (!str) return '';
+  return str.replace(END_SLASHES_REG, '');
+};
 
 export const trimSlash = (str: string): string => trimLeadingSlash(trimTrailingSlash(str));
 

@@ -161,7 +161,7 @@ export function AuthLayout() {
               <>
                 {autoDiscoveryError && <AuthLayoutError message={autoDiscoveryError.message} />}
                 {autoDiscoveryInfo && (
-                  <SpecVersionsProvider baseUrl={autoDiscoveryInfo.homeserver.base_url}>
+                  <SpecVersionsProvider baseUrl={autoDiscoveryInfo["m.homeserver"]?.base_url}>
                     <SpecVersionsLoader>
                       <AutoDiscoveryInfoProvider value={autoDiscoveryInfo}>
                         <AuthFlowsProvider>
