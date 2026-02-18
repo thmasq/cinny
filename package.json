@@ -118,5 +118,8 @@
     "vite-plugin-pwa": "1.0.3",
     "vite-plugin-static-copy": "3.1.2",
     "vite-plugin-top-level-await": "1.6.0"
+  },
+  "overrides": {
+    "ajv": "^8.18.0"
   }
 }
