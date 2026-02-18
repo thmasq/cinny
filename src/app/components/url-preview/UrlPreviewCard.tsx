@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { IPreviewUrlResponse } from 'matrix-js-sdk';
 import { Box, Icon, IconButton, Icons, Scroll, Spinner, as, config } from 'folds';
-import { AsyncStatus, useAsyncCallback, AsyncState } from '../../hooks/useAsyncCallback';
+import { AsyncStatus, AsyncState } from '../../hooks/useAsyncCallback';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import {
   UrlPreview,
@@ -118,22 +118,37 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
       }
     }, [mx, url, ts]);
 
-    // Effect for loading regular previews - only when needed
+    const prevUrlRef = useRef<string | null>(null);
+    const prevTsRef = useRef<number | null>(null);
+    const loadedParamsRef = useRef<{ url: string; ts: number } | null>(null);
+
     useEffect(() => {
-      // Always reset state when URL changes to prevent stale data
-      setPreviewState({
-        regular: { status: AsyncStatus.Idle },
-        handlerResult: null,
-        handlerError: null,
-      });
-      setEmbedLoadError(null);
-      setIsEmbedLoading(false);
+      const urlChanged = url !== prevUrlRef.current;
+
+      if (urlChanged) {
+        setPreviewState({
+          regular: { status: AsyncStatus.Idle },
+          handlerResult: null,
+          handlerError: null,
+        });
+        setEmbedLoadError(null);
+        setIsEmbedLoading(false);
+      }
+      
+      prevUrlRef.current = url;
+      prevTsRef.current = ts;
 
       // Determine if we need to load regular preview
       const needsRegularPreview = !handlerResult?.shouldReplace;
 
-      if (needsRegularPreview) {
+      const shouldLoad =
+        needsRegularPreview &&
+        (urlChanged ||
+          loadedParamsRef.current?.url !== url);
+
+      if (shouldLoad) {
         loadPreviewSafely();
+        loadedParamsRef.current = { url, ts };
       }
     }, [url, ts, handlerResult?.shouldReplace, loadPreviewSafely]);
 
