@@ -150,6 +150,14 @@ const TimelineDivider = as<'div', { variant?: ContainerColor | 'Inherit' }>(
   )
 );
 
+const getStableEventKey = (mEvent: MatrixEvent): string => {
+  const evt: any = mEvent;
+  if (!evt.__stableKey) {
+    evt.__stableKey = mEvent.getId() || Math.random().toString(36).slice(2);
+  }
+  return evt.__stableKey;
+};
+
 export const getLiveTimeline = (room: Room): EventTimeline =>
   room.getUnfilteredTimelineSet().getLiveTimeline();
 
@@ -1161,7 +1169,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
         return (
           <Message
-            key={mEvent.getId()}
+            key={getStableEventKey(mEvent)}
             data-message-item={item}
             data-message-id={mEventId}
             room={room}
@@ -1243,7 +1251,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
         return (
           <Message
-            key={mEvent.getId()}
+            key={getStableEventKey(mEvent)}
             data-message-item={item}
             data-message-id={mEventId}
             room={room}
@@ -1362,7 +1370,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
         return (
           <Message
-            key={mEvent.getId()}
+            key={getStableEventKey(mEvent)}
             data-message-item={item}
             data-message-id={mEventId}
             room={room}
@@ -1437,7 +1445,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
         return (
           <Event
-            key={mEvent.getId()}
+            key={getStableEventKey(mEvent)}
             data-message-item={item}
             data-message-id={mEventId}
             room={room}
@@ -1479,7 +1487,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
         return (
           <Event
-            key={mEvent.getId()}
+            key={getStableEventKey(mEvent)}
             data-message-item={item}
             data-message-id={mEventId}
             room={room}
@@ -1522,7 +1530,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
         return (
           <Event
-            key={mEvent.getId()}
+            key={getStableEventKey(mEvent)}
             data-message-item={item}
             data-message-id={mEventId}
             room={room}
@@ -1565,7 +1573,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
         return (
           <Event
-            key={mEvent.getId()}
+            key={getStableEventKey(mEvent)}
             data-message-item={item}
             data-message-id={mEventId}
             room={room}
@@ -1610,7 +1618,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
       return (
         <Event
-          key={mEvent.getId()}
+          key={getStableEventKey(mEvent)}
           data-message-item={item}
           data-message-id={mEventId}
           room={room}
@@ -1660,7 +1668,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
       return (
         <Event
-          key={mEvent.getId()}
+          key={getStableEventKey(mEvent)}
           data-message-item={item}
           data-message-id={mEventId}
           room={room}
@@ -1775,7 +1783,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
       if (dayDividerJSX) dayDivider = false;
 
       return (
-        <React.Fragment key={mEventId}>
+        <React.Fragment key={getStableEventKey(mEvent)}>
           {newDividerJSX}
           {dayDividerJSX}
           {eventJSX}
