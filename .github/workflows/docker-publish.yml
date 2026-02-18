@@ -2,6 +2,8 @@ name: Docker Publish
 
 on:
   push:
+    branches:
+      - 'custom-dev'
     tags:
       - 'v*'
 
