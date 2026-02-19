@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Button, Text, config, color } from 'folds';
+import { useClientConfig } from '../../../hooks/useClientConfig';
 import { WebsiteHandler, WebsiteHandlerResult } from './types';
 import * as css from '../UrlPreview.css';
 import { fetchProxied } from './utils';
@@ -183,6 +184,8 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
     window.open(getProfileUrl(screenName), '_blank', 'noopener,noreferrer');
   }, []);
 
+  const { proxy } = useClientConfig();
+
   useEffect(() => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -225,7 +228,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
         // Process main tweet author avatar
         try {
           if (tweet.author?.avatar_url) {
-            const res = await fetchProxied(tweet.author.avatar_url, { signal: controller.signal });
+            const res = await fetchProxied(tweet.author.avatar_url, proxy, { signal: controller.signal });
             const blob = await res.blob();
             processedData.author.avatar_url = URL.createObjectURL(blob);
           }
@@ -241,7 +244,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
           // Process quote tweet author avatar
           try {
             if (tweet.quote.author?.avatar_url) {
-              const res = await fetchProxied(tweet.quote.author.avatar_url, {
+              const res = await fetchProxied(tweet.quote.author.avatar_url, proxy, {
                 signal: controller.signal,
               });
               const blob = await res.blob();
@@ -259,7 +262,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
             
             for (let i = 0; i < tweet.quote.media.photos.length; i++) {
               try {
-                const res = await fetchProxied(tweet.quote.media.photos[i].url, {
+                const res = await fetchProxied(tweet.quote.media.photos[i].url, proxy, {
                   signal: controller.signal,
                 });
                 const blob = await res.blob();
@@ -285,7 +288,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
               const video = tweet.quote.media.videos[i];
               try {
                 if (video.thumbnail_url) {
-                  const thumbRes = await fetchProxied(video.thumbnail_url, {
+                  const thumbRes = await fetchProxied(video.thumbnail_url, proxy, {
                     signal: controller.signal,
                   });
                   const thumbBlob = await thumbRes.blob();
@@ -295,7 +298,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
                   };
                 }
 
-                const videoRes = await fetchProxied(video.url, { signal: controller.signal });
+                const videoRes = await fetchProxied(video.url, proxy, { signal: controller.signal });
                 const videoBlob = await videoRes.blob();
                 processedData.quote.media.videos[i] = {
                   ...processedData.quote.media.videos[i],
@@ -313,7 +316,7 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
         if (tweet.media?.photos) {
           for (let i = 0; i < tweet.media.photos.length; i++) {
             try {
-              const res = await fetchProxied(tweet.media.photos[i].url, {
+              const res = await fetchProxied(tweet.media.photos[i].url, proxy, {
                 signal: controller.signal,
               });
               const blob = await res.blob();
@@ -331,14 +334,14 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
             const video = tweet.media.videos[i];
             try {
               if (video.thumbnail_url) {
-                const thumbRes = await fetchProxied(video.thumbnail_url, {
+                const thumbRes = await fetchProxied(video.thumbnail_url, proxy, {
                   signal: controller.signal,
                 });
                 const thumbBlob = await thumbRes.blob();
                 processedData.media.videos[i].thumbnail_url = URL.createObjectURL(thumbBlob);
               }
 
-              const videoRes = await fetchProxied(video.url, { signal: controller.signal });
+              const videoRes = await fetchProxied(video.url, proxy, { signal: controller.signal });
               const videoBlob = await videoRes.blob();
               processedData.media.videos[i].url = URL.createObjectURL(videoBlob);
             } catch (e) {

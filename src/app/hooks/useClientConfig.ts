@@ -9,6 +9,8 @@ export type ClientConfig = {
   defaultHomeserver?: number;
   homeserverList?: string[];
   allowCustomHomeservers?: boolean;
+  
+  proxy?: string;
 
   featuredCommunities?: {
     openAsDefault?: boolean;

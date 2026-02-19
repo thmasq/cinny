@@ -34,5 +34,7 @@
   "hashRouter": {
     "enabled": false,
     "basename": "/"
-  }
+  },
+
+  "proxy": "__CINNY_PROXY__"
 }

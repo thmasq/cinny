@@ -134,11 +134,13 @@ export function withErrorBoundary<P extends HandlerComponentProps>(
  * @param options - Optional fetch options
  * @returns Promise<Response> - The fetch response from the proxied request
  */
-export async function fetchProxied(url: string, options: RequestInit = {}): Promise<Response> {
-  const proxyServer = import.meta.env.VITE_CINNY_PROXY;
-
+ export async function fetchProxied(
+  url: string, 
+  proxyServer: string | undefined, 
+  options: RequestInit = {}
+): Promise<Response> {
   if (!proxyServer) {
-    throw new Error('VITE_CINNY_PROXY environment variable is not configured');
+    throw new Error('Proxy server is not configured');
   }
 
   try {
