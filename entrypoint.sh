@@ -15,6 +15,9 @@ if [ -n "$CINNY_PROXY" ]; then
     
     tmp=$(mktemp)
     jq --arg proxy "$CINNY_PROXY" '.proxy = $proxy' "$CONFIG_PATH" > "$tmp" && mv "$tmp" "$CONFIG_PATH"
+
+    chmod 644 "$CONFIG_PATH"
+
 fi
 
 exec "$@"
