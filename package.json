@@ -1,6 +1,6 @@
 {
   "name": "cinny",
-  "version": "4.8.1",
+  "version": "5.0.3",
   "description": "Yet another matrix client",
   "main": "index.js",
   "type": "module",
@@ -49,7 +49,7 @@
     "html-react-parser": "5.2.6",
     "i18next": "25.4.2",
     "i18next-browser-languagedetector": "8.2.0",
-    "i18next-http-backend": "3.0.2",
+    "i18next-http-backend": "3.0.6",
     "immer": "10.1.1",
     "is-hotkey": "0.2.0",
     "jotai": "2.13.1",
@@ -74,16 +74,16 @@
     "react-i18next": "15.7.3",
     "react-modal": "3.16.3",
     "react-range": "1.10.0",
-    "react-router-dom": "7.13.0",
-    "sanitize-html": "2.17.0",
+    "react-router-dom": "7.18.4",
+    "sanitize-html": "2.17.7",
     "slate": "0.118.1",
     "slate-dom": "0.118.1",
     "slate-history": "0.113.1",
     "slate-react": "0.117.4",
     "tailwind-merge": "3.3.1",
     "tippy.js": "6.3.7",
-    "ua-parser-js": "2.0.4",
-    "uuid": "11.1.0",
+    "ua-parser-js": "2.0.10",
+    "uuid": "11.1.1",
     "zustand": "5.0.8"
   },
   "devDependencies": {
@@ -114,12 +114,16 @@
     "prettier": "3.6.2",
     "sass": "1.91.0",
     "typescript": "5.9.2",
-    "vite": "7.2.7",
+    "vite": "7.3.6",
     "vite-plugin-pwa": "1.0.3",
-    "vite-plugin-static-copy": "3.1.2",
-    "vite-plugin-top-level-await": "1.6.0"
+    "vite-plugin-static-copy": "3.1.2"
   },
   "overrides": {
     "ajv": "^8.18.0"
+  },
+  "allowScripts": {
+    "@swc/core@1.16.2": true,
+    "esbuild@0.28.2": true,
+    "@parcel/watcher@2.6.0": true
   }
 }

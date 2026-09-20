@@ -1,5 +1,5 @@
 ## Builder
-FROM node:25.6.1-alpine3.23 as builder
+FROM node:26.9.0-alpine3.24 AS builder
 
 WORKDIR /src
 
@@ -11,7 +11,7 @@ RUN npm run build
 
 
 ## App
-FROM nginx:1.29.5-alpine3.23
+FROM nginx:1.31.6-alpine3.24
 
 RUN apk add --no-cache jq
 
