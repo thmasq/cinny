@@ -13,16 +13,16 @@ fi
 if [ -n "$CINNY_PROXY" ]; then
     echo "Updating proxy configuration to: $CINNY_PROXY"
     tmp=$(mktemp)
-    jq --arg proxy "$CINNY_PROXY" '.proxy = $proxy' "$CONFIG_PATH" > "$tmp" && mv "$tmp" "$CONFIG_PATH"
+    jq --arg proxy "$CINNY_PROXY" '.proxy = $proxy' "$CONFIG_PATH" > "$tmp" && cat "$tmp" > "$CONFIG_PATH" && rm "$tmp"
 fi
 
 if [ -n "$MATRIX_SERVER" ]; then
     echo "Updating homeserver list to: $MATRIX_SERVER"
-    
+
     tmp=$(mktemp)
     jq --arg servers "$MATRIX_SERVER" \
        '.homeserverList = ($servers | split(",")) | .defaultHomeserver = 0' \
-       "$CONFIG_PATH" > "$tmp" && mv "$tmp" "$CONFIG_PATH"
+       "$CONFIG_PATH" > "$tmp" && cat "$tmp" > "$CONFIG_PATH" && rm "$tmp"
 fi
 
 chmod 644 "$CONFIG_PATH"
