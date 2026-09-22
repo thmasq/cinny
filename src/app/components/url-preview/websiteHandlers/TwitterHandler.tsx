@@ -609,68 +609,72 @@ const TwitterEmbed: React.FC<TwitterEmbedProps> = ({ url }) => {
 
   if (loading) {
     return (
-      <Box
-        ref={containerRef}
-        className={css.UrlPreview}
-        direction="Column"
-        alignItems="Center"
-        justifyContent="Center"
-        style={{
-          borderRadius: config.radii.R300,
-          backgroundColor: color.Surface.Container,
-          maxWidth: '500px',
-          minHeight: '150px',
-          padding: config.space.S400,
-        }}
-        data-embed-container
-        data-twitter-embed
-      >
-        <Box direction="Column" alignItems="Center" gap="300">
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              border: '2px solid transparent',
-              borderTop: `2px solid ${color.Primary.Main}`,
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-          <Text size="T300" align="Center" style={{ opacity: 0.7 }}>
-            Loading tweet...
-          </Text>
+      <>
+        <Box
+          ref={containerRef}
+          className={css.UrlPreview}
+          direction="Column"
+          alignItems="Center"
+          justifyContent="Center"
+          style={{
+            borderRadius: config.radii.R300,
+            backgroundColor: color.Surface.Container,
+            maxWidth: '500px',
+            minHeight: '150px',
+            padding: config.space.S400,
+          }}
+          data-embed-container
+          data-twitter-embed
+        >
+          <Box direction="Column" alignItems="Center" gap="300">
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                border: '2px solid transparent',
+                borderTop: `2px solid ${color.Primary.Main}`,
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+            <Text size="T300" align="Center" style={{ opacity: 0.7 }}>
+              Loading tweet...
+            </Text>
+          </Box>
         </Box>
-      </Box>
+      </>
     );
   }
 
   if (error || !processedTweetData) {
     return (
-      <Box
-        ref={containerRef}
-        className={css.UrlPreview}
-        direction="Column"
-        alignItems="Center"
-        justifyContent="Center"
-        style={{
-          borderRadius: config.radii.R300,
-          backgroundColor: color.Surface.Container,
-          maxWidth: '500px',
-          minHeight: '120px',
-          padding: config.space.S400,
-        }}
-        data-embed-container
-        data-twitter-embed
-      >
-        <Text size="T300" align="Center" style={{ color: color.Critical.Main }}>
-          Failed to load tweet
-        </Text>
-        {error && (
-          <Text size="T200" align="Center" style={{ opacity: 0.7, marginTop: config.space.S200 }}>
-            {error}
+      <>
+        <Box
+          ref={containerRef}
+          className={css.UrlPreview}
+          direction="Column"
+          alignItems="Center"
+          justifyContent="Center"
+          style={{
+            borderRadius: config.radii.R300,
+            backgroundColor: color.Surface.Container,
+            maxWidth: '500px',
+            minHeight: '120px',
+            padding: config.space.S400,
+          }}
+          data-embed-container
+          data-twitter-embed
+        >
+          <Text size="T300" align="Center" style={{ color: color.Critical.Main }}>
+            Failed to load tweet
           </Text>
-        )}
-      </Box>
+          {error && (
+            <Text size="T200" align="Center" style={{ opacity: 0.7, marginTop: config.space.S200 }}>
+              {error}
+            </Text>
+          )}
+        </Box>
+      </>
     );
   }
 

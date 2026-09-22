@@ -302,20 +302,34 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
       const { component: HandlerComponent } = handlerResult;
 
       return (
-        <UrlPreview 
-          {...props} 
-          ref={ref} 
-          data-url-preview 
-          data-embed-container 
-          style={{ 
+        <UrlPreview
+          {...props}
+          ref={ref}
+          data-url-preview
+          data-embed-container
+          style={{
             transition: 'min-height 0.3s ease',
             minHeight: isEmbedLoading ? '120px' : undefined
           }}
         >
-          <div ref={embedResizeHandler.embedRef}>
+          <div
+            ref={(node) => {
+              const currentRef = embedResizeHandler.embedRef as React.MutableRefObject<HTMLElement | null>;
+
+              if (currentRef.current && currentRef.current !== node) {
+                embedResizeHandler.unregisterEmbed(currentRef.current);
+              }
+
+              currentRef.current = node;
+		
+    		  if (node) {
+            embedResizeHandler.registerEmbed(node);
+    		  }
+            }}
+        >
             <HandlerComponent url={url} ts={ts} />
             {isEmbedLoading && (
-              <Box 
+              <Box
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -343,7 +357,21 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
 
       return (
         <UrlPreview {...props} ref={ref} data-url-preview data-embed-container>
-          <div ref={embedResizeHandler.embedRef}>
+          <div
+            ref={(node) => {
+      		  const currentRef = embedResizeHandler.embedRef as React.MutableRefObject<HTMLElement | null>;
+		
+      		  if (currentRef.current && currentRef.current !== node) {
+              embedResizeHandler.unregisterEmbed(currentRef.current);
+      		  }
+
+      		  currentRef.current = node;
+		
+        		  if (node) {
+                embedResizeHandler.registerEmbed(node);
+        		  }
+            }}
+          >
             <HandlerComponent url={url} ts={ts} />
           </div>
           {previewState.regular.status === AsyncStatus.Success && renderRegularContent()}

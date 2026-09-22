@@ -719,106 +719,116 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     if (!scrollElement) return;
 
     let resizeObserver: ResizeObserver | null = null;
-    const observedEmbeds = new Set<Element>();
+    const observedMessages = new Set<Element>();
 
-    const observeEmbed = (element: Element) => {
-      if (!observedEmbeds.has(element) && element instanceof HTMLElement) {
-        observedEmbeds.add(element);
+    const observeMessage = (element: Element) => {
+      if (!observedMessages.has(element) && element instanceof HTMLElement) {
+        observedMessages.add(element);
         resizeObserver?.observe(element);
       }
     };
 
-    const unobserveEmbed = (element: Element) => {
-      if (observedEmbeds.has(element)) {
-        observedEmbeds.delete(element);
+    const unobserveMessage = (element: Element) => {
+      if (observedMessages.has(element)) {
+        observedMessages.delete(element);
         resizeObserver?.unobserve(element);
       }
     };
 
-    // Create resize observer for embeds
+    // Create resize observer for messages
     resizeObserver = new ResizeObserver((entries) => {
       let shouldScrollToBottom = false;
-      
+      let scrollAdjustment = 0;
+
+      // Real-time check if we are actually at the bottom (bypasses the 1-second debounce trap)
+      const isActuallyAtBottom = Math.abs(
+        scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight
+      ) < 20;
+
       entries.forEach((entry) => {
         const element = entry.target as HTMLElement;
         const contentRect = entry.contentRect;
-        
+
         // Get previous size
-        const prevSizeStr = element.dataset.embedPrevSize;
+        const prevSizeStr = element.dataset.messagePrevSize;
         const prevSize = prevSizeStr ? JSON.parse(prevSizeStr) : null;
         const currentSize = { width: contentRect.width, height: contentRect.height };
-        
+
         if (prevSize) {
-          const heightDiff = Math.abs(currentSize.height - prevSize.height);
-          
+          const heightDiff = currentSize.height - prevSize.height;
+
           // Only react to significant height changes (>5px)
-          if (heightDiff > 5) {
-            if (atBottomRef.current) {
-              shouldScrollToBottom = true;
+          if (Math.abs(heightDiff) > 5) {
+            const rect = element.getBoundingClientRect();
+            const containerRect = scrollElement.getBoundingClientRect();
+
+            if (rect.top < containerRect.top) {
+        		  // Element is expanding ABOVE the viewport: offset the scroll position seamlessly
+        		  scrollAdjustment += heightDiff;
+            } else if (isActuallyAtBottom) {
+        		  // Element is expanding IN the viewport while we are already pinned to the bottom
+        		  shouldScrollToBottom = true;
             }
           }
         }
-        
+
         // Store current size
-        element.dataset.embedPrevSize = JSON.stringify(currentSize);
+        element.dataset.messagePrevSize = JSON.stringify(currentSize);
       });
 
+      // 1. Instantly apply scroll adjustments for elements expanding above us
+      // (Using scrollBy preserves fractional pixel perfection)
+      if (scrollAdjustment !== 0 && scrollElement) {
+        scrollElement.scrollBy({ top: scrollAdjustment, behavior: 'instant' });
+      }
+
+      // 2. If we were at the bottom and an element in view expanded, stay smoothly pinned
       if (shouldScrollToBottom && scrollElement) {
-        // Use requestAnimationFrame to ensure smooth scrolling
         requestAnimationFrame(() => {
           scrollToBottom(scrollElement, 'smooth');
         });
       }
     });
 
-    // Find and observe existing embeds
-    const findEmbeds = () => {
-      const embedSelectors = [
-        '[data-url-preview]',
-        '[data-embed-container]', 
-        'iframe',
-        'video',
-        '.youtube-embed',
-        '.twitter-embed'
-      ];
-      
-      embedSelectors.forEach(selector => {
-        const elements = scrollElement.querySelectorAll(selector);
-        elements.forEach(observeEmbed);
-      });
+
+
+    // Find and observe existing messages
+    const findMessages = () => {
+      const elements = scrollElement.querySelectorAll('[data-message-item]');
+      elements.forEach(observeMessage);
     };
 
     // Initial scan
-    findEmbeds();
+    findMessages();
 
-    // Set up mutation observer to catch new embeds
+    // Set up mutation observer to catch new messages
     const mutationObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         // Handle added nodes
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
-            
-            // Check if the added element is an embed
-            if (element.matches?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed')) {
-              observeEmbed(element);
+
+            // Check if the added element is a message
+            if (element.matches?.('[data-message-item]')) {
+		  observeMessage(element);
             }
-            
-            // Check for embed children
-            element.querySelectorAll?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed').forEach(observeEmbed);
+
+            // Check for message children
+            element.querySelectorAll?.('[data-message-item]').forEach(observeMessage);
           }
         });
-        
+
         // Handle removed nodes
         mutation.removedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
-            
-            if (element.matches?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed')) {
-              unobserveEmbed(element);
+
+            if (element.matches?.('[data-message-item]')) {
+		  unobserveMessage(element);
             }
-            
-            element.querySelectorAll?.('[data-url-preview], [data-embed-container], iframe, video, .youtube-embed, .twitter-embed').forEach(unobserveEmbed);
+
+            element.querySelectorAll?.('[data-message-item]').forEach(unobserveMessage);
           }
         });
       });
@@ -833,7 +843,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     return () => {
       resizeObserver?.disconnect();
       mutationObserver.disconnect();
-      observedEmbeds.clear();
+      observedMessages.clear();
     };
   }, [getScrollElement]);
 
